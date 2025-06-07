@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Test Plan">
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+        <collectionProp name="Arguments.arguments"/>
+      </elementProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+    </TestPlan>
+    <hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group">
+        <intProp name="ThreadGroup.num_threads">1</intProp>
+        <intProp name="ThreadGroup.ramp_time">1</intProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
+          <stringProp name="LoopController.loops">1</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+          <collectionProp name="Arguments.arguments">
+            <elementProp name="Threshold" elementType="Argument">
+              <stringProp name="Argument.name">Threshold</stringProp>
+              <stringProp name="Argument.value">300</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+          </collectionProp>
+        </Arguments>
+        <hashTree/>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="LaunchGoogle">
+          <stringProp name="HTTPSampler.domain">google.com</stringProp>
+          <stringProp name="HTTPSampler.protocol">https</stringProp>
+          <stringProp name="HTTPSampler.path">/</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+            <collectionProp name="Arguments.arguments"/>
+          </elementProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="JSR223 Assertion" enabled="false">
+            <stringProp name="cacheKey">true</stringProp>
+            <stringProp name="filename"></stringProp>
+            <stringProp name="parameters"></stringProp>
+            <stringProp name="script">import org.apache.http.client.methods.*
+import org.apache.http.impl.client.*
+import org.apache.http.entity.*
+
+// Threshold in ms
+long threshold = 300
+
+// Get response time from previous sampler
+long responseTime = prev.getTime()
+
+log.info(&quot;Google Response Time: &quot; + responseTime + &quot; ms&quot;)
+
+if (responseTime &gt; threshold) {
+    log.info(&quot;Response time exceeded threshold. Triggering PagerDuty alert.&quot;)
+
+    def client = HttpClients.createDefault()
+    def post = new HttpPost(&quot;https://events.pagerduty.com/v2/enqueue&quot;)
+    
+    def routingKey = &quot;f8a1ea5b96a04806d0da6c125e7f73ff&quot; // 🔁 Replace with your PagerDuty Integration Key
+
+    def payload = &quot;&quot;&quot;
+    {
+      &quot;routing_key&quot;: &quot;$routingKey&quot;,
+      &quot;event_action&quot;: &quot;trigger&quot;,
+      &quot;payload&quot;: {
+        &quot;summary&quot;: &quot;Google.com response time exceeded 5 seconds&quot;,
+        &quot;severity&quot;: &quot;error&quot;,
+        &quot;source&quot;: &quot;JMeter Test&quot;,
+        &quot;custom_details&quot;: {
+          &quot;Response Time (ms)&quot;: &quot;$responseTime&quot;
+        }
+      }
+    }
+    &quot;&quot;&quot;
+
+    post.setHeader(&quot;Content-Type&quot;, &quot;application/json&quot;)
+    post.setEntity(new StringEntity(payload))
+
+    def response = client.execute(post)
+    log.info(&quot;PagerDuty Response: &quot; + response.getStatusLine())
+    response.close()
+    client.close()
+} else {
+    log.info(&quot;Response time is within threshold. No alert sent.&quot;)
+}
+</stringProp>
+            <stringProp name="scriptLanguage">groovy</stringProp>
+          </JSR223Assertion>
+          <hashTree/>
+          <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="JSR223 PostProcessor">
+            <stringProp name="cacheKey">true</stringProp>
+            <stringProp name="filename"></stringProp>
+            <stringProp name="parameters"></stringProp>
+            <stringProp name="script">import org.apache.http.client.methods.*
+import org.apache.http.impl.client.*
+import org.apache.http.entity.*
+
+// Threshold in ms
+long threshold = vars.get(&quot;Threshold&quot;) as long
+
+// Get response time from previous sampler
+long responseTime = prev.getTime()
+
+log.info(&quot;Google Response Time: &quot; + responseTime + &quot; ms&quot;)
+
+if (responseTime &gt; threshold) {
+    log.info(&quot;Response time exceeded threshold. Triggering PagerDuty alert.&quot;)
+
+    def client = HttpClients.createDefault()
+    def post = new HttpPost(&quot;https://events.pagerduty.com/v2/enqueue&quot;)
+    
+    def routingKey = &quot;e0c1347de2be4a03c0ab9f5d23d031f2&quot; // 🔁 Replace with your PagerDuty Integration Key
+
+    def payload = &quot;&quot;&quot;
+    {
+      &quot;routing_key&quot;: &quot;$routingKey&quot;,
+      &quot;event_action&quot;: &quot;trigger&quot;,
+      &quot;payload&quot;: {
+        &quot;summary&quot;: &quot;Google.com response time exceeded 5 seconds&quot;,
+        &quot;severity&quot;: &quot;error&quot;,
+        &quot;source&quot;: &quot;JMeter Test&quot;,
+        &quot;custom_details&quot;: {
+          &quot;Response Time (ms)&quot;: &quot;$responseTime&quot;
+        }
+      }
+    }
+    &quot;&quot;&quot;
+
+    post.setHeader(&quot;Content-Type&quot;, &quot;application/json&quot;)
+    post.setEntity(new StringEntity(payload))
+
+    def response = client.execute(post)
+    log.info(&quot;PagerDuty Response: &quot; + response.getStatusLine())
+    response.close()
+    client.close()
+} else {
+    log.info(&quot;Response time is within threshold. No alert sent.&quot;)
+}
+</stringProp>
+            <stringProp name="scriptLanguage">groovy</stringProp>
+          </JSR223PostProcessor>
+          <hashTree/>
+        </hashTree>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="HTTP Request" enabled="false">
+          <stringProp name="HTTPSampler.domain">events.pagerduty.com</stringProp>
+          <stringProp name="HTTPSampler.protocol">https</stringProp>
+          <stringProp name="HTTPSampler.path">v2/enqueue</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">{&#xd;
+  &quot;routing_key&quot;: &quot;f8a1ea5b96a04806d0da6c125e7f73ff&quot;,&#xd;
+  &quot;event_action&quot;: &quot;trigger&quot;,&#xd;
+  &quot;payload&quot;: {&#xd;
+    &quot;summary&quot;: &quot;JMeter Test Alert&quot;,&#xd;
+    &quot;severity&quot;: &quot;error&quot;,&#xd;
+    &quot;source&quot;: &quot;JMeter&quot;,&#xd;
+    &quot;custom_details&quot;: {&#xd;
+      &quot;Test Plan&quot;: &quot;Your Test Plan Name&quot;,&#xd;
+      &quot;Details&quot;: &quot;Additional details about the test&quot;&#xd;
+    }&#xd;
+  }&#xd;
+}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+        </HTTPSamplerProxy>
+        <hashTree/>
+        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time>
+              <latency>true</latency>
+              <timestamp>true</timestamp>
+              <success>true</success>
+              <label>true</label>
+              <code>true</code>
+              <message>true</message>
+              <threadName>true</threadName>
+              <dataType>true</dataType>
+              <encoding>false</encoding>
+              <assertions>true</assertions>
+              <subresults>true</subresults>
+              <responseData>false</responseData>
+              <samplerData>false</samplerData>
+              <xml>false</xml>
+              <fieldNames>true</fieldNames>
+              <responseHeaders>true</responseHeaders>
+              <requestHeaders>true</requestHeaders>
+              <responseDataOnError>false</responseDataOnError>
+              <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
+              <assertionsResultsToSave>2</assertionsResultsToSave>
+              <bytes>true</bytes>
+              <sentBytes>true</sentBytes>
+              <url>true</url>
+              <threadCounts>true</threadCounts>
+              <idleTime>true</idleTime>
+              <connectTime>true</connectTime>
+            </value>
+          </objProp>
+          <stringProp name="filename"></stringProp>
+        </ResultCollector>
+        <hashTree/>
+      </hashTree>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>
