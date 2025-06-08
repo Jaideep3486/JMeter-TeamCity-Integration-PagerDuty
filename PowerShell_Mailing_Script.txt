@@ -1,0 +1,19 @@
+$SMTPServer = "smtp.gmail.com"  # Change if using another email provider
+$SMTPPort = "587"
+$Username = "jaideep.rathore@gmail.com"  # Your configured email in TeamCity
+$Password = "*****"  # Use an App Password instead of your regular password
+$From = "jaideep.rathore@gmail.com"
+$To = "jaideep.rathore@gmail.com"  # The recipient
+$Subject = "JMeter Test Report - Build %teamcity.build.number%"
+$Body = "Attached is the latest JMeter test report for build %teamcity.build.number%."
+
+# Path to the artifact (Ensure this is the correct path!)
+$BuildCounter = "${env:BUILD_NUMBER}"  # Fetch the build number dynamically
+$Attachment = "C:\Users\Asus\Desktop\apache-jmeter-5.6.3\bin\report.zip"
+
+# Convert password to Secure String
+$SecurePassword = ConvertTo-SecureString $Password -AsPlainText -Force
+$Credential = New-Object System.Management.Automation.PSCredential ($Username, $SecurePassword)
+
+# Send Email with Attachment
+Send-MailMessage -From $From -To $To -Subject $Subject -Body $Body -SmtpServer $SMTPServer -Port $SMTPPort -Credential $Credential -UseSsl -Attachments $Attachment
